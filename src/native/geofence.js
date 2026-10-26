@@ -50,3 +50,23 @@ export async function geoConsumePending() {
 }
 
 export async function geoLog() { if (!Geofence) return []; try { return (await Geofence.getLog()).lines || []; } catch { return []; } }
+
+// נשמר בחשבון (settings.profile.geo) כדי שמקום העבודה יישרוד החלפת מכשיר
+export const geoCloudCfg = () => { const c = geoConfig(); return c.lat ? { lat: c.lat, lng: c.lng, radius: c.radius, windowMin: c.windowMin, enabled: !!c.enabled } : { enabled: false, windowMin: c.windowMin }; };
+// במכשיר חדש: משחזר את המקום השמור. מפעיל ניטור רק אם ההרשאה כבר אושרה, אחרת נשאר "מוגדר, לא פעיל" עד שהמשתמש מפעיל.
+export async function geoRestore(saved) {
+  if (!saved?.lat || read().lat) return false;
+  write({ ...geoConfig(), lat: saved.lat, lng: saved.lng, radius: saved.radius || 50, windowMin: saved.windowMin || 90, enabled: false });
+  if (Geofence && saved.enabled) {
+    try {
+      const st = await Geofence.status();
+      if (st.auth === 'always' || st.auth === 'whenInUse') { await Geofence.start({ lat: saved.lat, lng: saved.lng, radius: saved.radius || 50 }); write({ ...geoConfig(), enabled: true }); }
+    } catch {}
+  }
+  return true;
+}
+// מפעיל ניטור על המקום השמור (בלי לקבוע מיקום חדש)
+export async function geoResume() {
+  const c = geoConfig(); if (!Geofence || !c.lat) return null;
+  await Geofence.start({ lat: c.lat, lng: c.lng, radius: c.radius }); write({ ...c, enabled: true }); return geoConfig();
+}

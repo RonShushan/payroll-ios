@@ -1,4 +1,3 @@
-import { placeBubble, initNavDrag } from './navbubble.js';
 import { initNativeTabs, selectNativeTab } from './native/tabbar.js';
 import { store } from './data/store.js';
 import { buildReportHtml } from './lib/reportHtml.js';
@@ -11,7 +10,7 @@ import { VAPID_PUBLIC_KEY } from './config.js';
 import { SETTLEMENTS, findSettlement } from './lib/settlements.js';
 import { ALL_PLACES } from './lib/localities.js';
 import { widgetAvailable, widgetStatus, widgetPush, widgetQueue } from './native/widget.js';
-import { geoAvailable, geoConfig, geoStatus, geoAskPermission, geoSetHere, geoDisable, geoSetWindow, geoConsumePending, geoLog } from './native/geofence.js';
+import { geoAvailable, geoConfig, geoStatus, geoAskPermission, geoSetHere, geoDisable, geoSetWindow, geoConsumePending, geoLog, geoCloudCfg, geoRestore, geoResume } from './native/geofence.js';
 import { isNativeApp, hasNotifPermission, ensurePermission, planReminders, onReminderTap, sendTest } from './native/reminders.js';
 import { getTheme, setTheme } from './appearance.js';
 import { initGestures } from './gestures.js';
@@ -48,7 +47,7 @@ const hm = h => ltr(fmtHM(h));                                                //
 const $ = (sel, root = document) => root.querySelector(sel);
 function toast(msg, bad, act) {
   let t = document.getElementById('toast');
-  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top) + 56px);left:12px;right:12px;z-index:200;box-shadow:0 4px 16px #0008;padding:12px 14px;border-radius:12px;font-weight:600;text-align:center'; document.body.appendChild(t); }
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:calc(env(safe-area-inset-bottom) + 100px);left:12px;right:12px;z-index:200;box-shadow:0 4px 16px #0008;padding:12px 14px;border-radius:12px;font-weight:600;text-align:center'; document.body.appendChild(t); }
   t.textContent = msg; t.style.background = bad ? 'var(--bad)' : 'var(--ok-fill)'; t.style.color = '#fff'; t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
   if (act) { const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-act'; b.textContent = act.label; b.onclick = () => { t.classList.remove('show'); act.fn(); }; t.appendChild(b); }
   haptic(bad ? 'warning' : 'success');
@@ -147,7 +146,7 @@ async function calcMonth(y, m) {
 async function boot() {
   initAuthUI(boot);
   if (isNativeApp() && !S._links) { S._links = true; import('@capacitor/app').then(({ App }) => { App.addListener('appUrlOpen', ({ url }) => openUrl(url)); App.getLaunchUrl().then(r => r?.url && openUrl(r.url)).catch(() => {}); }).catch(console.warn); }
-  if (!S._gest) { S._gest = true; initGestures(); initNavDrag($nav); }
+  if (!S._gest) { S._gest = true; initGestures(); }
   try { await loadLocal(); } catch (e) { console.warn(e); }
   let sess = null;
   try {
@@ -168,6 +167,7 @@ async function boot() {
   if (termsAccepted() && S.settings && S.settings.profile?.terms?.v !== TERMS_VERSION) {      // תיעוד אישור התקנון בחשבון: גרסה ותאריך
     try { S.settings = { ...S.settings, profile: { ...(S.settings.profile || {}), terms: { v: TERMS_VERSION, at: new Date().toISOString() } } }; await persistSettings(); } catch (e) { console.warn('terms', e); }
   }
+  if (isNativeApp() && S.settings) await geoRestore(S.settings.profile?.geo).catch(() => {});
   setOnboardUser(sess?.user?.id);
   if (shouldOnboard(S.settings, S.rates, S.payslips)) { $nav.hidden = true; return runWizard({ settings: S.settings, done: boot }); }
   if (!S._mi) { S._mi = true; S.month = todayMonth(); }
@@ -237,7 +237,6 @@ function renderNav() {
   const pop = _navPrev !== undefined && _navPrev !== S.tab; _navPrev = S.tab;
   $nav.querySelectorAll('button').forEach(x => x.remove());
   $nav.insertAdjacentHTML('beforeend', TABS.map(([k, t]) => `<button data-act="tab" data-k="${k}" class="${S.tab === k ? 'on' + (pop ? ' pop' : '') : ''}" ${S.tab === k ? 'aria-current="page"' : ''}>${icon(k)}<span>${t}</span></button>`).join(''));
-  placeBubble($nav);
   selectNativeTab(S.tab, !$nav.hidden);
   initNativeTabs($nav, TABS, k => $nav.querySelector(`[data-k="${k}"]`)?.click());
 }
@@ -265,8 +264,8 @@ let _viewKey;
 async function render() {
   clearInterval(S._t);
   renderNav();
-  const key = [S.tab, S.page?.type, S.sub, S.setCat].join('|'), changed = _viewKey !== undefined && key !== _viewKey; _viewKey = key;
-  const skT = changed ? setTimeout(() => { $app.innerHTML = SKEL; }, 150) : 0;
+  const key = [S.tab, S.page?.type, S.sub, S.setCat].join('|'), first = _viewKey === undefined, changed = !first && key !== _viewKey; _viewKey = key;
+  const skT = changed || first ? setTimeout(() => { $app.innerHTML = SKEL; }, 150) : 0;
   try {
     if (S.page?.type === 'report') await viewReport();
     else if (S.page?.type === 'shifts') await viewShiftsPage();
@@ -813,6 +812,9 @@ async function saveSettingsFromForm() {
   if (startDayOf(S.settings) !== oldSd) S.month = todayMonth();
   await persistSettings();
 }
+async function saveGeoToAccount() {
+  try { S.settings = { ...S.settings, profile: { ...(S.settings.profile || {}), geo: geoCloudCfg() } }; await persistSettings(); } catch (e) { console.warn('geo save', e); }
+}
 async function persistSettings() {
   const { extras, extra_deductions, ...rest } = S.settings;
   const row = { ...rest, extras, extra_deductions };
@@ -846,7 +848,7 @@ async function onToggle(el) {
       const r = Math.max(50, Math.min(1000, Number($('#geo-r')?.value) || 50)); geoSetWindow(Number($('#geo-w')?.value) || 90);
       toast('מבקש הרשאה ומאתר מיקום...'); const ps = await geoAskPermission();
       if (ps.auth === 'denied') { el.checked = false; toast('המיקום חסום. אפשר לאשר בהגדרות הטלפון ואז מחשבון שכר ואז מיקום', true); return renderGeoCard(); }
-      const cfg = await geoSetHere(r); await planReminders(S.settings);
+      const cfg = await geoSetHere(r); await planReminders(S.settings); await saveGeoToAccount();
       toast(ps.auth === 'always' ? `המיקום נשמר (דיוק ${cfg.accuracy}מ׳)` : 'נשמר, אבל צריך לאשר "תמיד" בהגדרות הטלפון כדי שיעבוד ברקע', ps.auth !== 'always'); return renderGeoCard();
     } else if (el.dataset.tg === 'wifisync') {
       S.settings = { ...S.settings, profile: { ...(S.settings.profile || {}), wifi_sync: on } }; await persistSettings();
@@ -925,7 +927,8 @@ async function renderGeoCard() {
     ${cfg.lat ? `<div class="row"><span>מיקום שמור</span><b dir="ltr">${cfg.lat.toFixed(4)}, ${cfg.lng.toFixed(4)} · ${cfg.radius}m</b></div>` : ''}
     <div class="grid2"><div><label>רדיוס (מטרים, 50 ומעלה)</label><input type="number" id="geo-r" value="${cfg.radius}"></div>
       <div><label>חלון זמן סביב השעה (דקות)</label><input type="number" id="geo-w" value="${cfg.windowMin}"></div></div>
-    <p><button class="pri" data-act="geo-set">${cfg.enabled ? 'עדכן למיקום הנוכחי' : 'קבע את המיקום הנוכחי כמקום העבודה'}</button></p>
+    ${cfg.lat && !cfg.enabled ? '<p><button class="pri" data-act="geo-resume">הפעל במקום העבודה השמור בחשבון</button></p>' : ''}
+    <p><button ${cfg.lat && !cfg.enabled ? '' : 'class="pri" '}data-act="geo-set">${cfg.enabled ? 'עדכן למיקום הנוכחי' : 'קבע את המיקום הנוכחי כמקום העבודה'}</button></p>
     <details><summary class="mut">יומן אירועי מיקום</summary><pre dir="rtl" style="white-space:pre-wrap;font-size:0.7059rem">${lg.length ? lg.join('\n') : 'אין אירועים עדיין'}</pre></details>
     <p class="mut">עמוד במקום העבודה בזמן שאתה לוחץ. ב-iPhone יופיעו שתי בקשות הרשאה: "בזמן שימוש", ואחריה "תמיד". כדי שזה יעבוד ברקע צריך לבחור "אפשר תמיד".</p>
     <p class="mut">דיוק: ב-iPhone זיהוי הגעה ויציאה מתבסס על Wi-Fi ואנטנות, ובדרך כלל מגיב מ-50 עד 200 מטר. רדיוס קטן מאוד עלול להתעכב או להיפספס. אם זה קורה, נסה 100.</p>`;
@@ -1041,7 +1044,13 @@ document.addEventListener('click', async e => {
         const cfg = await geoSetHere(r); await planReminders(S.settings);
         toast(ps.auth === 'always' ? `המיקום נשמר (דיוק ${cfg.accuracy}מ׳)` : 'נשמר, אבל צריך לאשר "תמיד" בהגדרות הטלפון כדי שיעבוד ברקע', ps.auth !== 'always'); return renderGeoCard();
       }
-      case 'geo-off': await geoDisable(); toast('כובה'); return renderGeoCard();
+      case 'geo-off': await geoDisable(); await saveGeoToAccount(); toast('כובה'); return renderGeoCard();
+      case 'geo-resume': {
+        toast('מבקש הרשאה...'); const ps = await geoAskPermission();
+        if (ps.auth === 'denied') { toast('המיקום חסום. אפשר לאשר בהגדרות הטלפון > מחשבון שכר > מיקום', true); return renderGeoCard(); }
+        await geoResume(); await planReminders(S.settings); await saveGeoToAccount();
+        toast(ps.auth === 'always' ? 'הופעל במקום העבודה השמור' : 'הופעל, אבל צריך לאשר "תמיד" בהגדרות הטלפון כדי שיעבוד ברקע', ps.auth !== 'always'); return renderGeoCard();
+      }
       case 'arr-in': case 'arr-out': {
         const el = $('#arr-t'); if (!el || !el.value) return toast('חסרה שעה', true);
         const iso = new Date(`${el.dataset.day}T${el.value}:00`).toISOString(); closeModal();
