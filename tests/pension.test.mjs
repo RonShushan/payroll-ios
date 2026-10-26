@@ -56,6 +56,7 @@ for (const f of files) {
   const rows = comparePayslip(j.slip, calc);
   console.log(`\n${f}: חישוב מול תלוש`); for (const r of rows) console.log(`  ${r.status === 'ok' ? '✓' : '✗'} ${r.name}: תלוש ${r.slip}, חישוב ${r.calc}, פער ${r.diff}`);
   if (j.slip.insured_salary != null) console.log(`  ${Math.abs(j.slip.insured_salary - calc.insured) <= 1 ? '✓' : '✗'} שכר מבוטח: תלוש ${j.slip.insured_salary}, חישוב ${calc.insured}`);
+  if (j.slip.severance != null) console.log(`  ${Math.abs(j.slip.severance - calc.severance) <= 2 ? '✓' : '✗'} פיצויים: תלוש ${j.slip.severance}, חישוב ${calc.severance}`);
   if (j.slip.pension_employer != null) console.log(`  ${Math.abs(j.slip.pension_employer - calc.pensionEmployer) <= 2 ? '✓' : '✗'} פנסיה מעסיק: תלוש ${j.slip.pension_employer}, חישוב ${calc.pensionEmployer}`);
   const pen = rows.find(r => r.name === 'פנסיה (עובד)'); if (pen) assert.equal(pen.status, 'ok', `פער בפנסיה עובד ב-${f}`);
 }
