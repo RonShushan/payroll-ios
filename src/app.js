@@ -770,7 +770,9 @@ function settingsCat(k) {
       <div class="glist"><button type="button" class="grow" data-act="terms"><span class="g-title">תקנון ומדיניות פרטיות</span><span class="g-val">גרסה ${TERMS_VERSION}</span>${icon('chev', 'ic chev')}</button></div>`;
   else body = `    <div class="card"><h2 style="margin-top:0">נתונים</h2>
       <p><label class="btn" style="display:inline-block;margin:0">ייבוא נתונים מקובץ (תלושים / משמרות)<input type="file" id="seedfile" accept=".json" hidden></label></p>
-      <p><label class="btn" style="display:inline-block;margin:0">העלאת קבצי תלושים (PDF / תמונה)<input type="file" id="slipfiles" multiple accept="application/pdf,image/*" hidden></label></p><p class="mut">שמות הקבצים בפורמט 2026-08_smart.pdf</p>
+      ${isGuest()
+        ? `<p class="auto-off" aria-disabled="true"><button type="button" class="btn" disabled>העלאת קבצי תלושים (PDF / תמונה)</button></p><p class="mut"><span class="pill">זמין רק למשתמש רשום</span></p>`
+        : `<p><label class="btn" style="display:inline-block;margin:0">העלאת קבצי תלושים (PDF / תמונה)<input type="file" id="slipfiles" multiple accept="application/pdf,image/*" hidden></label></p><p class="mut">שמות הקבצים בפורמט 2026-08_smart.pdf</p>`}
       <p><button data-act="export">הורד גיבוי (JSON)</button></p>
     </div>`;
   if (k === 'acct') queueMicrotask(renderAccountCard);
