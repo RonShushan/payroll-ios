@@ -2,6 +2,7 @@
 // וגם: כיבוד "הפחת שקיפות" של iOS (דרך קוד נייטיב, כי WebKit לא חושף את ההגדרה).
 import { registerPlugin } from '@capacitor/core';
 import { isNativeApp } from './native/env.js';
+import { setNativeTabStyle } from './native/tabbar.js';
 
 const KEY = 'payroll-theme';
 const root = document.documentElement;
@@ -15,6 +16,7 @@ export function setTheme(v) {
 function applyTheme() {
   const v = getTheme();
   if (v === 'light' || v === 'dark') root.setAttribute('data-theme', v); else root.removeAttribute('data-theme');
+  setNativeTabStyle(v);
   // צבע שורת המצב בדפדפן: מתעדכן לפי המראה בפועל
   const dark = v === 'dark' || (v === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.remove());

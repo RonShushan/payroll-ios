@@ -1,6 +1,6 @@
 /* עיצוב לפי Apple HIG: גופן מערכת (Dynamic Type), צבעים סמנטיים, מצב כהה/בהיר לפי המכשיר, ניגודיות 4.5:1 לפחות */
 :root{color-scheme:light dark;
-  --bg:#f2f2f7;--card:#ffffff;--elev:#f2f2f7;--line:rgba(60,60,67,.2);--txt:#000;--mut:rgba(60,60,67,.78);
+  --bg:#f2f2f7;--card:#ffffff;--elev:#f2f2f7;--line:rgba(60,60,67,.2);--txt:#000;--mut:rgba(60,60,67,.88);
   --ok:#1f7a34;--bad:#c4001a;--warn:#8a4b00;--acc:#0062cc;--fill:rgba(120,120,128,.12);
   --ok-fill:#1f7a34;--bad-fill:#c4001a;--acc-fill:#0062cc;
   --bar:rgba(249,249,249,.82);--ease:cubic-bezier(.2,.8,.2,1);--ease-out:cubic-bezier(.23,1,.32,1)}
@@ -396,3 +396,10 @@ nav button.on{color:var(--acc)}
 /* פונקציה שזמינה רק למשתמש רשום: אפורה */
 .auto-off{opacity:.45}.auto-off input{pointer-events:none}
 .btn-block:disabled{opacity:.45}
+.card h2 .pill{display:block;width:fit-content;margin-top:4px;font-weight:500}
+
+/* יישוב שלא נבחר: סימון בולט */
+.chk-warn{display:inline-flex;align-items:center;gap:6px;color:var(--warn);font-weight:700;font-size:.9375rem;margin-inline-start:auto}
+.chk-warn::before{content:"!";display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--warn);color:#fff;font-size:.75rem;font-weight:800}
+.card.attn{box-shadow:inset 0 0 0 1.5px var(--warn)}
+.attn-hint{color:var(--warn);font-size:.875rem;margin:0 0 10px}

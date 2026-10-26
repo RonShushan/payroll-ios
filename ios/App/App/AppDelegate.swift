@@ -432,8 +432,10 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
         CAPPluginMethod(name: "setup", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "select", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setVisible", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setStyle", returnType: CAPPluginReturnPromise),
     ]
     private var bar: UITabBar?
+    private var style: UIUserInterfaceStyle = .unspecified
     private var keys: [String] = []
 
     @objc func setup(_ call: CAPPluginCall) {
@@ -461,6 +463,7 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
                 bar.trailingAnchor.constraint(equalTo: host.trailingAnchor),
                 bar.bottomAnchor.constraint(equalTo: host.bottomAnchor),
             ])
+            bar.overrideUserInterfaceStyle = self.style
             bar.isHidden = true
             self.bar = bar
             call.resolve(["height": bar.intrinsicContentSize.height])
@@ -470,6 +473,15 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
         let key = call.getString("key") ?? ""
         DispatchQueue.main.async {
             if let bar = self.bar, let i = self.keys.firstIndex(of: key), let items = bar.items, i < items.count, bar.selectedItem != items[i] { bar.selectedItem = items[i] }
+            call.resolve()
+        }
+    }
+    // מראה ידני מההגדרות (בהיר/כהה/לפי המכשיר): הסרגל המקורי לא יודע על data-theme של הרשת
+    @objc func setStyle(_ call: CAPPluginCall) {
+        let v = call.getString("style") ?? "system"
+        DispatchQueue.main.async {
+            self.style = v == "dark" ? .dark : (v == "light" ? .light : .unspecified)
+            self.bar?.overrideUserInterfaceStyle = self.style
             call.resolve()
         }
     }

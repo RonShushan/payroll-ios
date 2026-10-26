@@ -729,23 +729,23 @@ function settingsCat(k) {
       <div class="edit-only"><div class="grid2"><div><label>שם</label><input id="x-name"></div><div><label>סכום</label><input type="number" step="0.01" id="x-amt"></div></div>
       <label class="tg-row"><span>נכלל בשכר מבוטח לפנסיה</span><input type="checkbox" role="switch" class="sw" id="x-pen" ></label><p><button data-act="addextra">הוסף תוספת</button></p></div></div>    <div class="card"><h2 style="margin-top:0">ניכויים קבועים</h2>${list(s.extra_deductions, 'ded') || '<p class="mut">אין</p>'}
       <div class="edit-only"><div class="grid2"><div><label>שם</label><input id="d-name"></div><div><label>סכום</label><input type="number" step="0.01" id="d-amt"></div></div><p><button data-act="adddeduct">הוסף ניכוי</button></p></div></div></fieldset>`;
-  else if (k === 'tax') body = `<div class="card"><div class="row"><span>יישוב</span>${!cityName ? chk('לא נבחר', false) : findSettlement(cityName) ? chk(esc(cityName) + ' · מזכה') : `<span class="bad">${esc(cityName)} · לא זכאי</span>`}</div></div><fieldset ${dis}>    <div class="card"><h2 style="margin-top:0">מס ופטורים</h2>
+  else if (k === 'tax') body = `<div class="card${cityName ? '' : ' attn'}" ${cityName ? '' : 'role="alert"'}><div class="row"><span>יישוב</span>${!cityName ? '<span class="chk-warn">לא נבחר יישוב</span>' : findSettlement(cityName) ? chk(esc(cityName) + ' · מזכה') : `<span class="bad">${esc(cityName)} · לא זכאי</span>`}</div>${cityName ? '' : '<p class="attn-hint">עוד לא בחרת יישוב מגורים. בחר אותו כאן כדי שהחישוב יכלול את ההנחה המגיעה לך.</p>'}</div><fieldset ${dis}>    <div class="card"><h2 style="margin-top:0">מס ופטורים</h2>
       <div class="grid2"><div><label>נקודות זיכוי</label><input type="number" step="0.25" id="s-credit" value="${s.credit_points}"></div>
       <div style="grid-column:1/-1"><label>יישוב (הקלד או בחר מהרשימה)</label><input id="s-city" list="s-cities" placeholder="שם יישוב" autocomplete="off" value="${esc(s.profile?.settlement_name || '')}"><datalist id="s-cities">${ALL_PLACES.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist><p class="place-msg ${placeCls(s.profile?.settlement_name)}" id="city-msg">${placeMsg(s.profile?.settlement_name)}</p></div>
       <div><label>הנחת יישוב מזכה (%)</label><input type="number" step="0.5" id="s-disc" value="${s.settlement_discount_pct}"></div>
       <div><label>תקרת הנחה (הכנסה שנתית)</label><input type="number" id="s-ceil" value="${s.settlement_ceiling}"></div>
       <div><label>הפסקה (דקות)</label><input type="number" id="s-brk" value="${s.break_minutes}"></div></div>
       <label class="tg-row"><span>ההפסקה משולמת</span><input type="checkbox" role="switch" class="sw" id="s-brkpaid" ${s.break_paid ? 'checked' : ''}></label></div></fieldset>`;
-  else if (k === 'slips') body = `<fieldset ${dis}>
-      <div class="card"><h2 style="margin-top:0">משיכת תלושים אוטומטית</h2>
+  else if (k === 'slips') { const G = isGuest(), off = G ? ' auto-off" aria-disabled="true' : '', note = G ? ' <span class="pill">זמין רק למשתמש רשום</span>' : '', gd = G ? 'disabled' : ''; body = `<fieldset ${dis}>
+      <div class="card${off}"><h2 style="margin-top:0">משיכת תלושים אוטומטית${note}</h2>
         <p class="mut">המייל שממנו המעסיק שולח את התלוש. רק הודעות מהכתובת הזו ייקלטו.</p>
-        <label>שם המעסיק</label><input id="s-empname" value="${esc(s.profile?.employer_name || '')}" placeholder="למשל: סמארטפיקס">
-        <label>מייל המעסיק (שולח התלושים)</label><input id="s-empmail" type="email" inputmode="email" dir="ltr" placeholder="payroll@company.co.il" value="${esc(s.profile?.employer_email || '')}">
+        <label>שם המעסיק</label><input id="s-empname" ${gd} value="${esc(s.profile?.employer_name || '')}" placeholder="למשל: סמארטפיקס">
+        <label>מייל המעסיק (שולח התלושים)</label><input id="s-empmail" ${gd} type="email" inputmode="email" dir="ltr" placeholder="payroll@company.co.il" value="${esc(s.profile?.employer_email || '')}">
         ${s.profile?.employer_email ? `<p>${chk('נשמר')}</p>` : ''}</div>
-      <div class="card"><h2 style="margin-top:0">דוח חודשי במייל</h2><label>שלח למייל</label><input id="s-mail" type="email" dir="ltr" value="${esc(s.report_email || '')}">
+      <div class="card${off}"><h2 style="margin-top:0">דוח חודשי במייל${note}</h2><label>שלח למייל</label><input id="s-mail" ${gd} type="email" dir="ltr" value="${esc(s.report_email || '')}">
         ${s.report_email ? `<p>${chk('נשמר')}</p>` : ''}</div></fieldset>
       <div class="card"><h2 style="margin-top:0">דוח החודש הנוכחי</h2>
-        <p><button class="pri" data-act="mreport" data-m="${monthKey(new Date())}">תצוגה מקדימה</button> <button data-act="previewreport">שלח לי דוח למייל</button></p></div>`;
+        <p><button class="pri" data-act="mreport" data-m="${monthKey(new Date())}">תצוגה מקדימה</button> <button data-act="previewreport" ${gd}>שלח לי דוח למייל</button>${G ? ' <span class="mut">זמין רק למשתמש רשום</span>' : ''}</p></div>`; }
   else if (k === 'notif') {
     const days = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map((n, i) => `<label class="day"><input type="checkbox" class="s-rday" value="${i}" ${(s.remind_days || [0, 1, 2, 3, 4, 5]).includes(i) ? 'checked' : ''}><span>${n}</span></label>`).join('');
     const geoOn = isNativeApp() && geoConfig().enabled, wifiOn = !!s.profile?.wifi_on;
