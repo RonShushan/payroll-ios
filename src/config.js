@@ -1,0 +1,4 @@
+export const SUPABASE_URL = 'https://zwrvbbapdcqyeslbsrvg.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3cnZiYmFwZGNxeWVzbGJzcnZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NTUyNjIsImV4cCI6MjEwNzEzMTI2Mn0.3dccsqUy1Fe9pNPLUFxYVuaFUHLokktdbcBR0mgbkOs';
+
+export const VAPID_PUBLIC_KEY = 'BGKjSzGYPJhAoliCOb5i0gX2LnIzKXJPSFryXMNvxUvWzv8luik1vsTr3ALowFPvhCtFXjjdrHCv2R3ajv5M-fc';

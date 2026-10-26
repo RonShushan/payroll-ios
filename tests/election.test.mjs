@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { computeMonth, splitDay, DEFAULT_SETTINGS } from '../src/lib/payroll.js';
+import { holidayOf } from '../src/lib/holidays.js';
+const rates = [{ from_date: '2026-01-01', hourly_rate: 40 }];
+assert.equal(holidayOf('2026-10-27')?.name, 'יום הבחירות לכנסת');
+assert.equal(holidayOf('2026-10-28'), null);
+assert.deepEqual(splitDay(8, false, DEFAULT_SETTINGS, true), { reg: 0, ot125: 0, ot150: 0, ot200: 8 });
+const shift = (d, h1, h2) => ({ start_at: `${d}T${h1}:00+02:00`, end_at: `${d}T${h2}:00+02:00`, break_minutes: 0 });
+const norm = computeMonth({ year: 2026, month: 10, shifts: [shift('2026-10-26', '08:00', '16:00')], rates, settings: DEFAULT_SETTINGS });
+const el = computeMonth({ year: 2026, month: 10, shifts: [shift('2026-10-27', '08:00', '16:00')], rates, settings: DEFAULT_SETTINGS });
+assert.equal(norm.payReg, 320); assert.equal(el.pay200, 640); assert.equal(el.ot200, 8); assert.equal(el.hours, 8);
+assert.ok(el.gross >= 640);
+const off = computeMonth({ year: 2026, month: 10, shifts: [], leave: [{ day: '2026-10-27', kind: 'holiday' }], rates, settings: DEFAULT_SETTINGS });
+assert.equal(off.payLeave, 320);
+console.log('election ok');

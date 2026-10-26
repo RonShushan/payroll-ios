@@ -1,0 +1,17 @@
+{
+  "appId": "com.ronshushan.payroll",
+  "appName": "מחשבון שכר",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#0a84ff"
+    }
+  }
+}

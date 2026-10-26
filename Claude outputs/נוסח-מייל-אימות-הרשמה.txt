@@ -1,0 +1,8 @@
+<div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#111827;line-height:1.6">
+  <h2 style="margin:0 0 8px">אימות האימייל</h2>
+  <p>ברוך הבא למחשבון שכר. כדי להשלים את ההרשמה הכנס באפליקציה את הקוד הזה:</p>
+  <p style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;background:#f3f4f6;border-radius:12px;padding:14px;direction:ltr;color:#111827">{{ .Token }}</p>
+  <p style="direction:ltr;text-align:center;color:#6b7280;font-size:14px;margin:0 0 12px">Your verification code is {{ .Token }}</p>
+  <p>הקוד תקף למשך שעה אחת.</p>
+  <p style="color:#6b7280;font-size:13px">לא נרשמת? אפשר להתעלם מהמייל.</p>
+</div>
