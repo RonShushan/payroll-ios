@@ -393,7 +393,7 @@ async function viewReport() {
   const mk = S.page.month;
   const prev = S.payslips.filter(p => p.month < mk && p.month.slice(0, 4) === String(y));
   const ytdG = prev.reduce((t, p) => t + Number(p.gross || 0), 0) + calc.gross, ytdT = prev.reduce((t, p) => t + Number(p.tax || 0), 0) + calc.tax;
-  const html = buildReportHtml({ y, m, c: calc, settings: { ...DEFAULT_SETTINGS, ...S.settings }, leave,
+  const html = buildReportHtml({ holName: d => holidayOf(d)?.name, y, m, c: calc, settings: { ...DEFAULT_SETTINGS, ...S.settings }, leave,
     shifts: shifts.map(s => ({ ...s, hours: s.end_at ? shiftHours(s, brk) : 0 })),
     employer: (latest[0] || {}).employer_name || '', bal, ytdGross: ytdG, ytdTax: ytdT,
     cmp: slip ? comparePayslip(slip, calc) : null });

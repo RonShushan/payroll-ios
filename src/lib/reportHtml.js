@@ -17,17 +17,20 @@ export function buildReportHtml(d) {
   const mn = new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString('he-IL', { month: 'long', year: 'numeric', timeZone: 'UTC' });
   const sd = Math.round(Number(settings?.profile?.month_start_day)) || 1, pr = sd > 1 ? (() => { const a = new Date(Date.UTC(y, m - 2, sd)), b = new Date(Date.UTC(y, m - 1, sd - 1)); return `${a.getUTCDate()}.${a.getUTCMonth() + 1} – ${b.getUTCDate()}.${b.getUTCMonth() + 1}`; })() : '';
   let missing = 0, long = 0;
+  const jDay = iso => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
+  const holWork = new Set(leave.filter(l => l.kind === 'holiday' && shifts.some(s => jDay(s.start_at) === l.day)).map(l => l.day));
   const shRows = shifts.map(s => {
     const open = !s.end_at, h = open ? 0 : s.hours, warn = !open && h > 12;
     if (open) missing++; if (warn) long++;
     const dow = new Date(new Date(s.start_at).toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' })).getDay(), rest = dow === 5 || dow === 6;
-    const bg = open ? 'background:#fee2e2;color:#b91c1c;font-weight:700;' : warn ? 'background:#fef3c7;color:#92400e;' : rest ? 'background:#ede9fe;color:#5b21b6;' : '';
-    return `<tr style="${bg}"><td style="padding:5px 8px;border-bottom:1px solid #eee">${rDay(s.start_at)}</td>
+    const hw = holWork.has(jDay(s.start_at)), hn = hw && d.holName ? d.holName(jDay(s.start_at)) : '';
+    const bg = hw ? 'background:#dcfce7;color:#166534;font-weight:600;' : open ? 'background:#fee2e2;color:#b91c1c;font-weight:700;' : warn ? 'background:#fef3c7;color:#92400e;' : rest ? 'background:#ede9fe;color:#5b21b6;' : '';
+    return `<tr style="${bg}"><td style="padding:5px 8px;border-bottom:1px solid #eee${hw ? ';border-inline-start:4px solid #166534' : ''}">${rDay(s.start_at)}${hw ? `<br><small>חג${hn ? ' · ' + hn : ''}</small>` : ''}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;direction:ltr;text-align:center">${rHm(s.start_at)}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;direction:ltr;text-align:center">${open ? '—' : rHm(s.end_at)}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;text-align:left">${open ? 'חסרה יציאה' : rNum(h)}</td></tr>`;
   }).join('');
-  const lvRows = leave.map(l => { const [nm, bg, fg] = R_KIND[l.kind] || ['', '#f3f4f6', '#374151']; return `<tr style="background:${bg};color:${fg};font-weight:600"><td style="padding:5px 8px;border-bottom:1px solid #eee;border-inline-start:4px solid ${fg}">${new Date(l.day + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit' })}</td><td colspan="3" style="padding:5px 8px;border-bottom:1px solid #eee">${nm || l.kind}</td></tr>`; }).join('');
+  const lvRows = leave.filter(l => !(l.kind === 'holiday' && holWork.has(l.day))).map(l => { const [nm, bg, fg] = R_KIND[l.kind] || ['', '#f3f4f6', '#374151']; return `<tr style="background:${bg};color:${fg};font-weight:600"><td style="padding:5px 8px;border-bottom:1px solid #eee;border-inline-start:4px solid ${fg}">${new Date(l.day + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit' })}</td><td colspan="3" style="padding:5px 8px;border-bottom:1px solid #eee">${nm || l.kind}</td></tr>`; }).join('');
   const alert = (missing || long) ? `<div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:10px;border-radius:8px;margin:12px 0">${missing ? `<b>נמצאו ${missing} משמרות בלי יציאה</b> (מסומנות באדום). יש לתקן באפליקציה, אחרת הן לא נספרות בשכר.` : ''}${long ? `<br>${long} משמרות ארוכות מ-12 שעות (בצהוב), כדאי לבדוק.` : ''}</div>` : '';
   const cmp = cmpRows && cmpRows.length ? `<h3 style="margin:18px 0 6px">השוואה לתלוש שהתקבל</h3><table style="width:100%;border-collapse:collapse">${cmpRows.map(r => rRow(r.name, `${rMoney(r.slip)} מול ${rMoney(r.calc)} ${r.status === 'ok' ? '<b style="color:#15803d">✓</b>' : '<b style="color:#dc2626">פער ' + rMoney(r.diff) + '</b>'}`)).join('')}</table>` : '';
 
