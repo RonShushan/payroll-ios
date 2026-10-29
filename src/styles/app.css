@@ -381,12 +381,16 @@ nav button.on{background:rgba(120,120,128,.2)}
 .attn-hint{color:var(--warn);font-size:.875rem;margin:0 0 10px}
 .auto-off button:disabled{opacity:1}
 
-/* ימי היעדרות: שורות ניטרליות עם סימון צבע קטן (ללא מילוי צבע לכל השורה) */
+/* ימי היעדרות: רקע צבעוני עדין לפי סוג היום + פס צבע בצד ההתחלה (חג ירוק, חופשה כחולה, מחלה כתומה, מילואים סגול, לידיעה אפור) */
+.abs{--tint:rgba(10,132,255,.14);--ink:var(--acc);background:var(--tint);border-radius:10px;border-bottom:0;margin:6px 0;padding:4px 12px;border-inline-start:4px solid var(--ink)}
+.abs-holiday{--tint:rgba(52,199,89,.16);--ink:var(--ok)}
+.abs-vacation{--tint:rgba(10,132,255,.14);--ink:var(--acc)}
+.abs-sick{--tint:rgba(255,159,10,.18);--ink:var(--warn)}
+.abs-reserve{--tint:rgba(175,82,222,.15);--ink:#8944ab}
+:root[data-theme="dark"] .abs-reserve{--ink:#bf5af2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .abs-reserve{--ink:#bf5af2}}
+.abs-off{--tint:rgba(120,120,128,.16);--ink:var(--mut)}
 .abs-main{display:grid;gap:2px;min-width:0}
 .abs-main b{font-weight:600;font-variant-numeric:tabular-nums}
-.abs-main small{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:.8125rem}
-.abs-main small::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--acc)}
-.abs-holiday .abs-main small::before{background:var(--ok)}
-.abs-sick .abs-main small::before{background:var(--warn)}
-.abs-off .abs-main small::before{background:var(--mut)}
+.abs-main small{color:var(--ink);font-size:.8125rem;font-weight:600}
 .abs-del{background:transparent;color:var(--bad);padding:0 4px;min-height:44px;font-size:.9375rem;font-weight:500}

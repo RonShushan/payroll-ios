@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "test": "node tests/logic.test.mjs && node tests/engine.test.mjs && node tests/reminders.test.mjs && node tests/election.test.mjs && node tests/pension.test.mjs",
-    "ios": "npm run build && npx cap sync ios && npx cap open ios",
+    "ios": "npm run build && npx cap sync ios && bash scripts/mark-install.sh && npx cap open ios",
     "ios:patch": "bash scripts/patch-ios.sh",
     "ios:add": "npm run build && npx cap add ios && npm run ios:patch && npx cap sync ios",
     "ios:widget": "cp ios/widget-src/PayrollWidget.swift ios/App/PayrollWidget/PayrollWidget.swift && cp ios/widget-src/PayrollWidgetBundle.swift ios/App/PayrollWidget/PayrollWidgetBundle.swift && echo \"קבצי הווידג׳ט הועתקו ✓\""

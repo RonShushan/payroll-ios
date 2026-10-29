@@ -6,8 +6,10 @@ const rNum = n => Number(n || 0).toLocaleString('he-IL', { maximumFractionDigits
 const rHm = d => new Date(d).toLocaleTimeString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' });
 const rDay = s => new Date(s).toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'Asia/Jerusalem' });
 const R_TD = 'padding:6px 8px;border-bottom:1px solid #e5e7eb;';
+// צבעים: ירוק=חג/נטו, כחול=חופשה/שכר, כתום=מחלה/אזהרה, סגול=מילואים/פנסיה, אדום=חסר/ניכוי, אפור=לידיעה
+const R_KIND = { holiday: ['חג', '#dcfce7', '#166534'], vacation: ['חופשה', '#dbeafe', '#1e40af'], sick: ['מחלה', '#fef3c7', '#92400e'], reserve: ['מילואים', '#ede9fe', '#5b21b6'], off: ['יום חופש', '#f3f4f6', '#374151'] };
 const rRow = (a, b, o = {}) => `<tr><td style="${R_TD}${o.bold ? 'font-weight:700;' : ''}">${a}</td><td style="${R_TD}text-align:left;${o.bold ? 'font-weight:700;' : ''}${o.color ? 'color:' + o.color + ';' : ''}">${b}</td></tr>`;
-const rHead = t => `<tr><td colspan="2" style="padding:10px 8px 4px;background:#f3f4f6;font-weight:700;border-top:2px solid #111827">${t}</td></tr>`;
+const rHead = (t, bg = '#f3f4f6', fg = '#111827') => `<tr><td colspan="2" style="padding:10px 8px 4px;background:${bg};color:${fg};font-weight:700;border-top:2px solid ${fg}">${t}</td></tr>`;
 
 // d: { y, m, employer, bal, ytdGross, ytdTax, c (תוצאת computeMonth), settings, shifts: [{start_at, end_at, hours}], leave, cmp: [{name, slip, calc, status, diff}] | null }
 export function buildReportHtml(d) {
@@ -18,15 +20,16 @@ export function buildReportHtml(d) {
   const shRows = shifts.map(s => {
     const open = !s.end_at, h = open ? 0 : s.hours, warn = !open && h > 12;
     if (open) missing++; if (warn) long++;
-    const bg = open ? 'background:#fee2e2;color:#b91c1c;font-weight:700;' : warn ? 'background:#fef3c7;' : '';
+    const dow = new Date(new Date(s.start_at).toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' })).getDay(), rest = dow === 5 || dow === 6;
+    const bg = open ? 'background:#fee2e2;color:#b91c1c;font-weight:700;' : warn ? 'background:#fef3c7;color:#92400e;' : rest ? 'background:#ede9fe;color:#5b21b6;' : '';
     return `<tr style="${bg}"><td style="padding:5px 8px;border-bottom:1px solid #eee">${rDay(s.start_at)}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;direction:ltr;text-align:center">${rHm(s.start_at)}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;direction:ltr;text-align:center">${open ? '—' : rHm(s.end_at)}</td>
       <td style="padding:5px 8px;border-bottom:1px solid #eee;text-align:left">${open ? 'חסרה יציאה' : rNum(h)}</td></tr>`;
   }).join('');
-  const lvRows = leave.map(l => `<tr><td style="padding:5px 8px;border-bottom:1px solid #eee">${new Date(l.day + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit' })}</td><td colspan="3" style="padding:5px 8px;border-bottom:1px solid #eee">${{ vacation: 'חופשה', sick: 'מחלה', holiday: 'חג', reserve: 'מילואים', off: 'יום חופש' }[l.kind] || l.kind}</td></tr>`).join('');
+  const lvRows = leave.map(l => { const [nm, bg, fg] = R_KIND[l.kind] || ['', '#f3f4f6', '#374151']; return `<tr style="background:${bg};color:${fg};font-weight:600"><td style="padding:5px 8px;border-bottom:1px solid #eee;border-inline-start:4px solid ${fg}">${new Date(l.day + 'T12:00:00').toLocaleDateString('he-IL', { weekday: 'short', day: '2-digit', month: '2-digit' })}</td><td colspan="3" style="padding:5px 8px;border-bottom:1px solid #eee">${nm || l.kind}</td></tr>`; }).join('');
   const alert = (missing || long) ? `<div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:10px;border-radius:8px;margin:12px 0">${missing ? `<b>נמצאו ${missing} משמרות בלי יציאה</b> (מסומנות באדום). יש לתקן באפליקציה, אחרת הן לא נספרות בשכר.` : ''}${long ? `<br>${long} משמרות ארוכות מ-12 שעות (בצהוב), כדאי לבדוק.` : ''}</div>` : '';
-  const cmp = cmpRows && cmpRows.length ? `<h3 style="margin:18px 0 6px">השוואה לתלוש שהתקבל</h3><table style="width:100%;border-collapse:collapse">${cmpRows.map(r => rRow(r.name, `${rMoney(r.slip)} מול ${rMoney(r.calc)} ${r.status === 'ok' ? '✓' : '<b style="color:#dc2626">פער ' + rMoney(r.diff) + '</b>'}`)).join('')}</table>` : '';
+  const cmp = cmpRows && cmpRows.length ? `<h3 style="margin:18px 0 6px">השוואה לתלוש שהתקבל</h3><table style="width:100%;border-collapse:collapse">${cmpRows.map(r => rRow(r.name, `${rMoney(r.slip)} מול ${rMoney(r.calc)} ${r.status === 'ok' ? '<b style="color:#15803d">✓</b>' : '<b style="color:#dc2626">פער ' + rMoney(r.diff) + '</b>'}`)).join('')}</table>` : '';
 
   const pay = [];
   const L = (name, qty, rate, amt) => `<tr><td style="${R_TD}">${name}</td><td style="${R_TD}text-align:center">${qty}</td><td style="${R_TD}text-align:center">${rate}</td><td style="${R_TD}text-align:left">${rMoney(amt)}</td></tr>`;
@@ -46,25 +49,25 @@ export function buildReportHtml(d) {
       ${rRow('ימי עבודה', rNum(c.workDays))}${rRow('סה״כ שעות', rNum(c.hours))}${rRow('שכר שעתי', rMoney(c.rate))}
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:12px">
-      <tr style="background:#f3f4f6;font-weight:700"><td style="${R_TD}">רכיבי שכר</td><td style="${R_TD}text-align:center">כמות</td><td style="${R_TD}text-align:center">תעריף</td><td style="${R_TD}text-align:left">סכום</td></tr>
+      <tr style="background:#dbeafe;color:#1e40af;font-weight:700"><td style="${R_TD}">רכיבי שכר</td><td style="${R_TD}text-align:center">כמות</td><td style="${R_TD}text-align:center">תעריף</td><td style="${R_TD}text-align:left">סכום</td></tr>
       ${pay.join('') || `<tr><td colspan="4" style="${R_TD}">אין נתונים</td></tr>`}
-      <tr style="font-weight:700"><td colspan="3" style="${R_TD}">סה״כ ברוטו</td><td style="${R_TD}text-align:left">${rMoney(c.gross)}</td></tr>
+      <tr style="font-weight:700;background:#eff6ff;color:#1e3a8a"><td colspan="3" style="${R_TD}">סה״כ ברוטו</td><td style="${R_TD}text-align:left">${rMoney(c.gross)}</td></tr>
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:12px">
-      ${rHead('ניכויי חובה')}${rRow('מס הכנסה', rMoney(c.tax))}${rRow('ביטוח לאומי', rMoney(c.bl))}${rRow('ביטוח בריאות', rMoney(c.health))}
-      ${rHead('ניכויים אחרים')}${rRow('פנסיה (עובד)', rMoney(c.pensionEmp))}${(settings.extra_deductions || []).map(e => rRow(rEsc(e.name), rMoney(e.amount))).join('')}
+      ${rHead('ניכויי חובה', '#fee2e2', '#991b1b')}${rRow('מס הכנסה', rMoney(c.tax))}${rRow('ביטוח לאומי', rMoney(c.bl))}${rRow('ביטוח בריאות', rMoney(c.health))}
+      ${rHead('ניכויים אחרים', '#fee2e2', '#991b1b')}${rRow('פנסיה (עובד)', rMoney(c.pensionEmp))}${(settings.extra_deductions || []).map(e => rRow(rEsc(e.name), rMoney(e.amount))).join('')}
       ${rRow('סה״כ ניכויים', rMoney(c.totalDeductions), { bold: true })}
             <tr><td style="padding:12px 8px;font-size:18px;font-weight:700;background:#ecfdf5">שכר נטו לתשלום</td><td style="padding:12px 8px;font-size:20px;font-weight:700;text-align:left;background:#ecfdf5;color:#047857">${rMoney(c.net)}</td></tr>
     </table>
     <table style="width:100%;border-collapse:collapse;margin-top:12px">
-      ${rHead('פנסיה והפרשות מעסיק')}${rRow('שכר מבוטח (ללא שעות נוספות)', rMoney(c.insured))}${rRow('פנסיה עובד', rMoney(c.pensionEmp))}${rRow('פנסיה מעסיק', rMoney(c.pensionEmployer))}${rRow('פיצויים', rMoney(c.severance))}${rRow('סה״כ הפקדה', rMoney(c.pensionEmp + c.pensionEmployer + c.severance), { bold: true })}
-      ${rHead('מצטבר שנתי (עד החודש, כולל)')}${rRow('ברוטו מצטבר', rMoney(d.ytdGross))}${rRow('מס הכנסה מצטבר', rMoney(d.ytdTax))}
-      ${bal ? rHead(`יתרות (לפי תלוש ${rEsc(bal.month)})`) + rRow('ימי חופשה', rNum(bal.vacation_balance)) + rRow('ימי מחלה', rNum(bal.sick_balance)) : ''}
+      ${rHead('פנסיה והפרשות מעסיק', '#ede9fe', '#5b21b6')}${rRow('שכר מבוטח (ללא שעות נוספות)', rMoney(c.insured))}${rRow('פנסיה עובד', rMoney(c.pensionEmp))}${rRow('פנסיה מעסיק', rMoney(c.pensionEmployer))}${rRow('פיצויים', rMoney(c.severance))}${rRow('סה״כ הפקדה', rMoney(c.pensionEmp + c.pensionEmployer + c.severance), { bold: true })}
+      ${rHead('מצטבר שנתי (עד החודש, כולל)', '#dbeafe', '#1e40af')}${rRow('ברוטו מצטבר', rMoney(d.ytdGross))}${rRow('מס הכנסה מצטבר', rMoney(d.ytdTax))}
+      ${bal ? rHead(`יתרות (לפי תלוש ${rEsc(bal.month)})`, '#fef3c7', '#92400e') + rRow('ימי חופשה', rNum(bal.vacation_balance)) + rRow('ימי מחלה', rNum(bal.sick_balance)) : ''}
     </table>
   </div>
   ${alert}
   <h3 style="margin:18px 0 6px">פירוט שעות עבודה</h3>
-  <table style="width:100%;border-collapse:collapse"><tr style="background:#f3f4f6;font-weight:700"><td style="padding:5px 8px">יום</td><td style="padding:5px 8px;text-align:center">כניסה</td><td style="padding:5px 8px;text-align:center">יציאה</td><td style="padding:5px 8px;text-align:left">שעות</td></tr>
+  <table style="width:100%;border-collapse:collapse"><tr style="background:#dbeafe;color:#1e40af;font-weight:700"><td style="padding:5px 8px">יום</td><td style="padding:5px 8px;text-align:center">כניסה</td><td style="padding:5px 8px;text-align:center">יציאה</td><td style="padding:5px 8px;text-align:left">שעות</td></tr>
   ${shRows || '<tr><td colspan="4" style="padding:8px">אין משמרות</td></tr>'}${lvRows}
   <tr style="font-weight:700"><td colspan="3" style="padding:8px">סה״כ</td><td style="padding:8px;text-align:left">${rNum(c.hours)}</td></tr></table>
   ${cmp}
